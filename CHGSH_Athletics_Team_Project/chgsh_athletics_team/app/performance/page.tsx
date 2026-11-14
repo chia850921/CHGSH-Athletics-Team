@@ -13,6 +13,12 @@ export default function PerformancePage() {
     setLoading(true);
     setError("");
 
+    if (!supabase) {
+      setError("Supabase 尚未初始化");
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("performance_results")
       .select("*")
