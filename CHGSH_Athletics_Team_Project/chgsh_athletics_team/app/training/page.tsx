@@ -37,6 +37,10 @@ export default function TrainingPage() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [records, setRecords] = useState<TrainingRecord[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [filterAthlete, setFilterAthlete] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -61,17 +65,27 @@ export default function TrainingPage() {
     setLoading(false);
   }
 
-  async function loadRecords(athleteId: string) {
-    if (!supabase || !athleteId) {
-      setRecords([]);
-      return;
-    }
+  async function loadRecords() {
+    if (!supabase) return;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("training_records")
       .select("*")
-      .eq("athlete_id", athleteId)
       .order("training_date", { ascending: false });
+
+    if (filterAthlete) {
+      query = query.eq("athlete_id", filterAthlete);
+    }
+
+    if (startDate) {
+      query = query.gte("training_date", startDate);
+    }
+
+    if (endDate) {
+      query = query.lte("training_date", endDate);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       setMessage("紀錄讀取失敗：" + error.message);
@@ -85,10 +99,8 @@ export default function TrainingPage() {
   }, []);
 
   useEffect(() => {
-    if (form.athlete_id) {
-      loadRecords(form.athlete_id);
-    }
-  }, [form.athlete_id]);
+    loadRecords();
+  }, [filterAthlete, startDate, endDate]);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -104,39 +116,93 @@ export default function TrainingPage() {
     setSaving(true);
     setMessage("");
 
-    const { error } = await supabase
-      .from("training_records")
-      .insert({
+    const recordData = {
+      athlete_id: form.athlete_id,
+      training_date: form.training_date,
+      content: form.content,
+      sets: form.sets,
+      distance: form.distance,
+      time: form.time,
+      rest: form.rest,
+      notes: form.notes,
+    };
+
+    const result = editingId
+      ? await supabase
+          .from("training_records")
+          .update(recordData)
+          .eq("id", editingId)
+      : await supabase
+          .from("training_records")
+          .insert(recordData);
+
+    if (result.error) {
+      setMessage("儲存失敗：" + result.error.message);
+    } else {
+      setMessage(editingId ? "訓練紀錄修改成功！" : "訓練紀錄新增成功！");
+      setEditingId(null);
+      setForm({
+        ...emptyForm,
         athlete_id: form.athlete_id,
         training_date: form.training_date,
-        content: form.content,
-        sets: form.sets,
-        distance: form.distance,
-        time: form.time,
-        rest: form.rest,
-        notes: form.notes,
       });
-
-    if (error) {
-      setMessage("儲存失敗：" + error.message);
-    } else {
-      setMessage("訓練紀錄新增成功！");
-      setForm((old) => ({
-        ...emptyForm,
-        athlete_id: old.athlete_id,
-        training_date: old.training_date,
-      }));
-      await loadRecords(form.athlete_id);
+      await loadRecords();
     }
 
     setSaving(false);
+  }
+
+  function editRecord(record: TrainingRecord) {
+    setEditingId(record.id);
+    setForm({
+      athlete_id: record.athlete_id,
+      training_date: record.training_date,
+      content: record.content || "",
+      sets: record.sets || "",
+      distance: record.distance || "",
+      time: record.time || "",
+      rest: record.rest || "",
+      notes: record.notes || "",
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function deleteRecord(id: string) {
+    if (!supabase) return;
+
+    if (!window.confirm("確定要刪除這筆訓練紀錄嗎？")) return;
+
+    const { error } = await supabase
+      .from("training_records")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      setMessage("刪除失敗：" + error.message);
+    } else {
+      setMessage("訓練紀錄已刪除。");
+      await loadRecords();
+
+      if (editingId === id) {
+        cancelEdit();
+      }
+    }
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm({
+      ...emptyForm,
+      athlete_id: form.athlete_id,
+    });
   }
 
   return (
     <main className="shell">
       <div className="card section">
         <h2>每日訓練紀錄</h2>
-        <p className="muted">依照選手個別建立與查詢訓練紀錄</p>
+        <p className="muted">選手個別訓練紀錄管理</p>
 
         {loading ? (
           <p>載入選手名單中...</p>
@@ -144,6 +210,8 @@ export default function TrainingPage() {
           <p>目前沒有選手資料，請先建立選手名單。</p>
         ) : (
           <>
+            <h3>{editingId ? "修改訓練紀錄" : "新增訓練紀錄"}</h3>
+
             <form onSubmit={saveRecord} className="formgrid">
               <div className="field wide">
                 <label>選手</label>
@@ -241,8 +309,14 @@ export default function TrainingPage() {
                   type="submit"
                   disabled={saving || !form.athlete_id}
                 >
-                  {saving ? "儲存中..." : "新增訓練紀錄"}
+                  {saving ? "儲存中..." : editingId ? "儲存修改" : "新增訓練紀錄"}
                 </button>
+
+                {editingId && (
+                  <button className="btn" type="button" onClick={cancelEdit}>
+                    取消修改
+                  </button>
+                )}
               </div>
             </form>
 
@@ -250,10 +324,61 @@ export default function TrainingPage() {
 
             <hr />
 
-            <h3>{athletes.find((a) => a.id === form.athlete_id)?.name}－訓練歷史</h3>
+            <h3>訓練紀錄查詢</h3>
+
+            <div className="formgrid">
+              <div className="field wide">
+                <label>依選手篩選</label>
+                <select
+                  value={filterAthlete}
+                  onChange={(e) => setFilterAthlete(e.target.value)}
+                >
+                  <option value="">全部選手</option>
+                  {athletes.map((athlete) => (
+                    <option key={athlete.id} value={athlete.id}>
+                      {athlete.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label>開始日期</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+
+              <div className="field">
+                <label>結束日期</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+
+              <div className="wide">
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => {
+                    setFilterAthlete("");
+                    setStartDate("");
+                    setEndDate("");
+                  }}
+                >
+                  清除篩選
+                </button>
+              </div>
+            </div>
+
+            <h3>訓練歷史（{records.length} 筆）</h3>
 
             {records.length === 0 ? (
-              <p className="muted">目前沒有訓練紀錄。</p>
+              <p className="muted">目前沒有符合條件的訓練紀錄。</p>
             ) : (
               records.map((record) => (
                 <div
@@ -261,13 +386,33 @@ export default function TrainingPage() {
                   className="field"
                   style={{ marginBottom: "12px" }}
                 >
-                  <strong>{record.training_date}</strong>
+                  <strong>
+                    {athletes.find((a) => a.id === record.athlete_id)?.name || "未知選手"}
+                    {" — "}
+                    {record.training_date}
+                  </strong>
                   <p>訓練內容：{record.content || "—"}</p>
                   <p>組數：{record.sets || "—"}</p>
                   <p>距離：{record.distance || "—"}</p>
                   <p>秒數／配速：{record.time || "—"}</p>
                   <p>休息：{record.rest || "—"}</p>
                   {record.notes && <p>備註：{record.notes}</p>}
+
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => editRecord(record)}
+                  >
+                    編輯
+                  </button>
+
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => deleteRecord(record.id)}
+                  >
+                    刪除
+                  </button>
                 </div>
               ))
             )}
