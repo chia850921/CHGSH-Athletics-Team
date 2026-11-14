@@ -94,6 +94,29 @@ export default function PerformancePage() {
   useEffect(() => {
     loadRecords();
   }, []);
+    async function deleteRecord(id: string) {
+    if (!supabase) {
+      setError("Supabase 尚未初始化");
+      return;
+    }
+
+    if (!window.confirm("確定要刪除這筆成績嗎？刪除後無法復原。")) {
+      return;
+    }
+
+    const { error: deleteError } = await supabase
+      .from("performance_results")
+      .delete()
+      .eq("id", id);
+
+    if (deleteError) {
+      setError("刪除失敗：" + deleteError.message);
+      return;
+    }
+
+    setMessage("成績已刪除");
+    await loadRecords();
+  }
 
   async function saveRecord() {
     if (!supabase) {
