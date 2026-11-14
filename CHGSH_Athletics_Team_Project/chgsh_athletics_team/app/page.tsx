@@ -31,7 +31,7 @@ export default function Home() {
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
   const [displayName,setDisplayName] = useState("");
-
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const ready = !!supabase;
   const isCoach = profile?.role === "coach" && profile.approved;
   const ownAthlete = athletes.find(a=>a.user_id===sessionUser?.id);
@@ -72,6 +72,29 @@ export default function Home() {
     else if(authMode==="signup") setMessage("註冊申請已送出。請依 Supabase 郵件設定完成驗證，並等待教練建立／核准選手資料。");
   }
 
+  async function sendResetEmail() {
+  setError("");
+  setMessage("");
+  setResetEmailSent(false);
+
+  if (!supabase) return;
+
+  if (!email) {
+    setError("請先輸入電子郵件地址。");
+    return;
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+
+  if (error) {
+    setError(error.message);
+  } else {
+    setResetEmailSent(true);
+    setMessage("密碼重設連結已寄出，請檢查電子郵件。");
+  }
+}
   async function signOut(){await supabase?.auth.signOut();}
   async function saveRecord(e:React.FormEvent){
     e.preventDefault();setError("");setMessage("");
@@ -105,7 +128,17 @@ export default function Home() {
   function download(blob:Blob,name:string){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
 
   if(!ready)return <main className="shell"><div className="login card"><h1>CHGSH Athletics Team</h1><div className="error">尚未設定 Supabase 環境變數。請依專案 README 完成設定。</div></div></main>;
-  if(!sessionUser)return <main className="shell"><div className="login"><div className="top"><div><div className="brand">CHGSH ATHLETICS TEAM</div><div className="sub">TRAINING MANAGEMENT PLATFORM</div></div><span className="pill">TEAM PORTAL</span></div><div className="card section"><h2>{authMode==="login"?"登入系統":"選手註冊"}</h2><p className="muted">教練與選手使用個人帳號登入。</p><form onSubmit={signIn} className="formgrid">{authMode==="signup"&&<div className="field wide"><label>姓名</label><input value={displayName} onChange={e=>setDisplayName(e.target.value)} required/></div>}<div className="field wide"><label>電子郵件</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></div><div className="field wide"><label>密碼</label><input type="password" minLength={8} value={password} onChange={e=>setPassword(e.target.value)} required/></div><div className="wide actions"><button className="btn primary" type="submit">{authMode==="login"?"登入":"建立選手帳號"}</button><button type="button" className="btn" onClick={()=>setAuthMode(authMode==="login"?"signup":"login")}>{authMode==="login"?"首次使用？選手註冊":"返回登入"}</button></div></form>{error&&<p className="error">{error}</p>}{message&&<p className="success">{message}</p>}<p className="muted small">註冊不會自動取得教練權限，須由管理者核准。</p></div></div></main>;
+  if(!sessionUser)return <main className="shell"><div className="login"><div className="top"><div><div className="brand">CHGSH ATHLETICS TEAM</div><div className="sub">TRAINING MANAGEMENT PLATFORM</div></div><span className="pill">TEAM PORTAL</span></div><div className="card section"><h2>{authMode==="login"?"登入系統":"選手註冊"}</h2><p className="muted">教練與選手使用個人帳號登入。</p><form onSubmit={signIn} className="formgrid">{authMode==="signup"&&<div className="field wide"><label>姓名</label><input value={displayName} onChange={e=>setDisplayName(e.target.value)} required/></div>}<div className="field wide"><label>電子郵件</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></div><div className="field wide"><label>密碼</label><input type="password" minLength={8} value={password} onChange={e=>setPassword(e.target.value)} required/></div><div className="wide actions"><button className="btn primary" type="submit">{authMode==="login"?"登入":"建立選手帳號"}</button><button type="button" className="btn" onClick={()=>setAuthMode(authMode==="login"?"signup":"login")}>{authMode==="login"?"首次使用？選手註冊":"返回登入"}</button></div></form>
+{authMode==="login" && !resetEmailSent && (
+  <button
+    type="button"
+    className="btn"
+    onClick={sendResetEmail}
+  >
+    忘記密碼？寄送重設連結
+  </button>
+)}
+{error&&<p className="error">{error}</p>}{message&&<p className="success">{message}</p>}<p className="muted small">註冊不會自動取得教練權限，須由管理者核准。</p></div></div></main>;
 
   if(!profile || !profile.approved)return <main className="shell"><div className="top"><div><div className="brand">CHGSH ATHLETICS TEAM</div><div className="sub">ACCOUNT REVIEW</div></div><button className="btn" onClick={signOut}>登出</button></div><div className="card section"><h2>帳號等待核准</h2><p>你的帳號已登入，但尚未完成教練核准或選手資料綁定。請聯絡教練協助設定。</p></div></main>;
 
