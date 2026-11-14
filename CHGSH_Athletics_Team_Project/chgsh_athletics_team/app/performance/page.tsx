@@ -137,7 +137,7 @@ export default function PerformancePage() {
       wind: numericWind,
       competition_name: competitionName || null,
       notes: notes || null,
-      context: contextText,
+    
     };
 
     const { error: saveError } = await supabase
