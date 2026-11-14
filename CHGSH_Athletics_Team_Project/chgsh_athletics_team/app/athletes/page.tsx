@@ -15,6 +15,17 @@ type Athlete = {
   notes: string | null;
 };
 
+type TrainingRecord = {
+  id: string;
+  training_date: string;
+  content: string;
+  sets: string | null;
+  distance: string | null;
+  time: string | null;
+  rest: string | null;
+  notes: string | null;
+};
+
 const emptyForm = {
   name: "",
   gender: "",
@@ -31,6 +42,10 @@ export default function AthletesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null);
+  const [history, setHistory] = useState<TrainingRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyMessage, setHistoryMessage] = useState("");
 
   async function loadAthletes() {
     if (!supabase) {
@@ -82,13 +97,8 @@ export default function AthletesPage() {
     };
 
     const result = editingId
-      ? await supabase
-          .from("athletes")
-          .update(athleteData)
-          .eq("id", editingId)
-      : await supabase
-          .from("athletes")
-          .insert(athleteData);
+      ? await supabase.from("athletes").update(athleteData).eq("id", editingId)
+      : await supabase.from("athletes").insert(athleteData);
 
     if (result.error) {
       setMessage("儲存失敗：" + result.error.message);
@@ -121,17 +131,44 @@ export default function AthletesPage() {
 
     if (!window.confirm("確定要刪除這位選手的資料嗎？")) return;
 
-    const { error } = await supabase
-      .from("athletes")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("athletes").delete().eq("id", id);
 
     if (error) {
       setMessage("刪除失敗：" + error.message);
     } else {
       setMessage("選手資料已刪除。");
+      if (selectedAthlete?.id === id) {
+        setSelectedAthlete(null);
+        setHistory([]);
+      }
       await loadAthletes();
     }
+  }
+
+  async function viewHistory(athlete: Athlete) {
+    if (!supabase) return;
+
+    setSelectedAthlete(athlete);
+    setHistory([]);
+    setHistoryMessage("");
+    setHistoryLoading(true);
+
+    const { data, error } = await supabase
+      .from("training_records")
+      .select("id, training_date, content, sets, distance, time, rest, notes")
+      .eq("athlete_id", athlete.id)
+      .order("training_date", { ascending: false });
+
+    if (error) {
+      setHistoryMessage("讀取訓練歷程失敗：" + error.message);
+    } else {
+      setHistory(data || []);
+      if (!data || data.length === 0) {
+        setHistoryMessage("這位選手目前還沒有訓練紀錄。");
+      }
+    }
+
+    setHistoryLoading(false);
   }
 
   return (
@@ -252,6 +289,14 @@ export default function AthletesPage() {
               <button
                 className="btn"
                 type="button"
+                onClick={() => viewHistory(athlete)}
+              >
+                查看訓練歷程
+              </button>
+
+              <button
+                className="btn"
+                type="button"
                 onClick={() => editAthlete(athlete)}
               >
                 編輯
@@ -271,6 +316,50 @@ export default function AthletesPage() {
         <button className="btn" type="button" onClick={loadAthletes}>
           重新整理
         </button>
+
+        {selectedAthlete && (
+          <section className="card section">
+            <h2>{selectedAthlete.name}｜個人訓練歷程</h2>
+
+            <button
+              className="btn"
+              type="button"
+              onClick={() => {
+                setSelectedAthlete(null);
+                setHistory([]);
+                setHistoryMessage("");
+              }}
+            >
+              關閉歷程
+            </button>
+
+            {historyLoading ? (
+              <p>訓練紀錄載入中...</p>
+            ) : historyMessage ? (
+              <p className="muted">{historyMessage}</p>
+            ) : (
+              <>
+                <p className="muted">累積訓練紀錄：{history.length} 筆</p>
+
+                {history.map((record) => (
+                  <div
+                    key={record.id}
+                    className="field"
+                    style={{ marginBottom: "12px" }}
+                  >
+                    <strong>{record.training_date}</strong>
+                    <p>訓練內容：{record.content}</p>
+                    <p>組數：{record.sets || "未填寫"}</p>
+                    <p>距離：{record.distance || "未填寫"}</p>
+                    <p>時間：{record.time || "未填寫"}</p>
+                    <p>休息：{record.rest || "未填寫"}</p>
+                    {record.notes && <p>備註：{record.notes}</p>}
+                  </div>
+                ))}
+              </>
+            )}
+          </section>
+        )}
       </div>
     </main>
   );
