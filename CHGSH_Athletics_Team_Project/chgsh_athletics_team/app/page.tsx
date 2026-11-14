@@ -151,6 +151,7 @@ export default function Home() {
     <a className="tab" href="/athletes">選手管理</a>
     <a className="tab" href="/training">每日訓練</a>
     <a className="tab" href="/weekly">每週統計</a>
+    <a className="tab" href="/performance">成績分析</a>
   </>}
 </nav>
 
