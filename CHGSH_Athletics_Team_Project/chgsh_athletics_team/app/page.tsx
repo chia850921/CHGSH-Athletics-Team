@@ -144,7 +144,16 @@ export default function Home() {
 
   return <main className="shell">
     <header className="top"><div><div className="brand">CHGSH ATHLETICS TEAM</div><div className="sub">TRAINING · PERFORMANCE · TEAM</div></div><div className="right"><span className="pill">{isCoach?"COACH":"ATHLETE"} · {profile.display_name||sessionUser.email}</span><button className="btn" onClick={signOut}>登出</button></div></header>
-    <nav className="tabs">{[["dashboard","總覽"],["records","訓練紀錄"],...(isCoach?[["entry","新增紀錄"],["athletes","選手名單"]]:[])].map(([k,v])=><button key={k} className={`tab ${tab===k?"active":""}`} onClick={()=>setTab(k)}>{v}</button>)}</nav>
+    
+<nav className="tabs">
+  {[["dashboard","總覽"],["records","訓練紀錄"],...(isCoach?[["entry","新增紀錄"],["athletes","選手名單"]]:[])].map(([k,v])=><button key={k} className={`tab ${tab===k?"active":""}`} onClick={()=>setTab(k)}>{v}</button>)}
+  {isCoach && <>
+    <a className="tab" href="/athletes">選手管理</a>
+    <a className="tab" href="/training">每日訓練</a>
+    <a className="tab" href="/weekly">每週統計</a>
+  </>}
+</nav>
+
     {error&&<p className="error">{error}</p>}{message&&<p className="success">{message}</p>}
 
 {tab==="dashboard"&&<>
