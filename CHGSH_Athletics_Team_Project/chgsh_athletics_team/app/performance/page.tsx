@@ -124,8 +124,7 @@ export default function PerformancePage() {
     setMessage("");
 
    
-      .filter(Boolean)
-      .join("｜");
+      
 
     const payload = {
       athlete_id: athleteId,
