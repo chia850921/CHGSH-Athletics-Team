@@ -361,22 +361,23 @@ export default function PerformancePage() {
               </thead>
               <tbody>
                 {records.map((record) => (
-                  <tr key={record.id}>
-                    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.record_date || "—"}</td>
-                    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{getAthleteName(record.athlete_id)}</td>
-                    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.record_type || "—"}</td>
-                    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.event}</td>
-                    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.result}</td>
-                    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.wind ?? "—"}</td>
-                    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.competition_name || "—"}</td>
-                    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.notes || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </main>
-  );
-}
+  <tr key={record.id}>
+    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.record_date || "—"}</td>
+    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{getAthleteName(record.athlete_id)}</td>
+    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.record_type || "—"}</td>
+    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.event}</td>
+    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.result}</td>
+    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.wind ?? "—"}</td>
+    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.competition_name || "—"}</td>
+    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>{record.notes || "—"}</td>
+    <td style={{ padding: 10, borderBottom: "1px solid #eee" }}>
+      <button
+        type="button"
+        onClick={() => deleteRecord(record.id)}
+        style={{ color: "#dc2626", cursor: "pointer" }}
+      >
+        刪除
+      </button>
+    </td>
+  </tr>
+))}
