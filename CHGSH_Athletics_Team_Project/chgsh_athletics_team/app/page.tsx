@@ -146,7 +146,76 @@ export default function Home() {
     <header className="top"><div><div className="brand">CHGSH ATHLETICS TEAM</div><div className="sub">TRAINING · PERFORMANCE · TEAM</div></div><div className="right"><span className="pill">{isCoach?"COACH":"ATHLETE"} · {profile.display_name||sessionUser.email}</span><button className="btn" onClick={signOut}>登出</button></div></header>
     <nav className="tabs">{[["dashboard","總覽"],["records","訓練紀錄"],...(isCoach?[["entry","新增紀錄"],["athletes","選手名單"]]:[])].map(([k,v])=><button key={k} className={`tab ${tab===k?"active":""}`} onClick={()=>setTab(k)}>{v}</button>)}</nav>
     {error&&<p className="error">{error}</p>}{message&&<p className="success">{message}</p>}
-    {tab==="dashboard"&&<><div className="grid"><div className="card"><div className="muted">可見訓練紀錄</div><div className="stat">{visibleRecords.length}</div></div><div className="card"><div className="muted">選手人數</div><div className="stat">{isCoach?athletes.length:1}</div></div><div className="card"><div className="muted">本週紀錄</div><div className="stat">{visibleRecords.filter(r=>r.training_date>=weekStart()).length}</div></div><div className="card"><div className="muted">系統身分</div><div className="stat" style={{fontSize:20}}>{isCoach?"教練":"選手"}</div></div></div><section className="card section"><h2>最近訓練紀錄</h2><RecordsTable rows={visibleRecords.slice(0,8)} isCoach={isCoach} onToggle={togglePublic}/></section></>}
+
+{tab==="dashboard"&&<>
+  <div className="grid">
+    <div className="card">
+      <div className="muted">累積訓練紀錄</div>
+      <div className="stat">{visibleRecords.length}</div>
+    </div>
+
+    <div className="card">
+      <div className="muted">選手人數</div>
+      <div className="stat">{isCoach?athletes.length:1}</div>
+    </div>
+
+    <div className="card">
+      <div className="muted">本週訓練紀錄</div>
+      <div className="stat">
+        {visibleRecords.filter(r=>r.training_date>=weekStart()).length}
+      </div>
+    </div>
+
+    <div className="card">
+      <div className="muted">本週有紀錄的選手</div>
+      <div className="stat">
+        {new Set(
+          visibleRecords
+            .filter(r=>r.training_date>=weekStart())
+            .map(r=>r.athlete_id)
+        ).size}
+      </div>
+    </div>
+  </div>
+
+  {isCoach&&<section className="card section">
+    <h2>本週選手訓練統計</h2>
+    <div className="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>選手</th>
+            <th>本週訓練次數</th>
+          </tr>
+        </thead>
+        <tbody>
+          {athletes.map(a=>{
+            const count=visibleRecords.filter(
+              r=>r.athlete_id===a.id && r.training_date>=weekStart()
+            ).length;
+
+            return (
+              <tr key={a.id}>
+                <td>{a.name}</td>
+                <td>{count} 次</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </section>}
+
+  <section className="card section">
+    <h2>最近訓練紀錄</h2>
+    <RecordsTable
+      rows={visibleRecords.slice(0,5)}
+      isCoach={isCoach}
+      onToggle={togglePublic}
+    />
+  </section>
+</>}
+
     {tab==="entry"&&isCoach&&<section className="card"><h2>新增每日訓練紀錄</h2><form onSubmit={saveRecord} className="formgrid"><div className="field"><label>日期</label><input type="date" value={form.training_date} onChange={e=>setForm({...form,training_date:e.target.value})}/></div><div className="field"><label>選手</label><select value={form.athlete_id} onChange={e=>setForm({...form,athlete_id:e.target.value})} required><option value="">請選擇</option>{athletes.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></div><div className="field"><label>訓練項目</label><select value={form.event} onChange={e=>setForm({...form,event:e.target.value})}>{events.map(x=><option key={x}>{x}</option>)}</select></div><div className="field"><label>訓練強度</label><select value={form.intensity} onChange={e=>setForm({...form,intensity:e.target.value})}>{["低","中","高","測驗／比賽"].map(x=><option key={x}>{x}</option>)}</select></div><div className="field wide"><label>訓練內容</label><input placeholder="例：400m × 6，控制配速" value={form.content} onChange={e=>setForm({...form,content:e.target.value})} required/></div><div className="field"><label>組數</label><input value={form.sets} onChange={e=>setForm({...form,sets:e.target.value})} placeholder="例：2組"/></div><div className="field"><label>趟數／次數</label><input value={form.reps} onChange={e=>setForm({...form,reps:e.target.value})} placeholder="例：6趟"/></div><div className="field"><label>秒數／測驗成績</label><input value={form.result} onChange={e=>setForm({...form,result:e.target.value})} placeholder="例：70.5秒"/></div><div className="field"><label>休息時間</label><input value={form.rest} onChange={e=>setForm({...form,rest:e.target.value})} placeholder="例：2–3分鐘"/></div><div className="field"><label>出席</label><select value={form.attendance} onChange={e=>setForm({...form,attendance:e.target.value})}>{["出席","缺席","公假","傷病調整","自主訓練"].map(x=><option key={x}>{x}</option>)}</select></div><div className="field"><label>公開給全隊查看</label><select value={String(form.is_public)} onChange={e=>setForm({...form,is_public:e.target.value==="true"})}><option value="false">否（僅教練及本人）</option><option value="true">是</option></select></div><div className="field wide"><label>教練觀察／選手回饋</label><textarea value={form.feedback} onChange={e=>setForm({...form,feedback:e.target.value})} placeholder="疲勞、技術觀察、完成情況；避免填寫不必要的敏感健康資訊"/></div><div className="wide actions"><button className="btn primary" type="submit">儲存訓練紀錄</button><button className="btn" type="button" onClick={()=>setForm(initialForm)}>清空</button></div></form></section>}
     {tab==="records"&&<section className="card"><div className="right" style={{justifyContent:"space-between",marginBottom:12}}><h2>訓練紀錄</h2><div className="right"><button className="btn" onClick={exportCsv}>CSV</button><button className="btn" onClick={exportExcel}>Excel</button><button className="btn dark" onClick={exportPdf}>PDF</button></div></div><RecordsTable rows={visibleRecords} isCoach={isCoach} onToggle={togglePublic}/></section>}
     {tab==="athletes"&&isCoach&&<section className="card"><h2>選手名單</h2><div className="tablewrap"><table><thead><tr><th>姓名</th><th>訓練項目</th><th>帳號綁定</th></tr></thead><tbody>{athletes.map(a=><tr key={a.id}><td>{a.name}</td><td>{(a.events||[]).join("、")||"未設定"}</td><td>{a.user_id?"已綁定":"尚未綁定"}</td></tr>)}</tbody></table></div><p className="muted small">新增或綁定選手帳號請依 README 的管理步驟操作，避免錯誤授權。</p></section>}
