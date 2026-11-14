@@ -381,3 +381,11 @@ export default function PerformancePage() {
     </td>
   </tr>
 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
