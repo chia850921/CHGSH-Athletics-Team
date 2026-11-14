@@ -123,7 +123,7 @@ export default function PerformancePage() {
     setError("");
     setMessage("");
 
-    const contextText = [recordType, competitionName, notes]
+   
       .filter(Boolean)
       .join("｜");
 
