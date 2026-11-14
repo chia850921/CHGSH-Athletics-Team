@@ -122,10 +122,6 @@ export default function PerformancePage() {
     setSaving(true);
     setError("");
     setMessage("");
-
-   
-      
-
     const payload = {
       athlete_id: athleteId,
       record_date: recordDate,
