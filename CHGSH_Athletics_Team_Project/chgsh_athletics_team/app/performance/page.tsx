@@ -125,7 +125,7 @@ export default function PerformancePage() {
     const payload = {
       athlete_id: athleteId,
       record_date: recordDate,
-    
+    result_date: recordDate,
       record_type: recordType,
       event,
       result: numericResult,
