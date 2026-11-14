@@ -352,7 +352,7 @@ export default function PerformancePage() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  {["日期", "選手", "類型", "項目", "成績", "風速", "比賽名稱", "備註"].map((title) => (
+                  {["日期", "選手", "類型", "項目", "成績", "風速", "比賽名稱", "備註", "操作"].map((title) => (
                     <th key={title} style={{ padding: 10, borderBottom: "1px solid #ccc", textAlign: "left" }}>
                       {title}
                     </th>
